@@ -1,4 +1,4 @@
-# >_ uv run --with opencv-python --with scikit-learn --with tensorflow traffic.py gtsrb model.h5
+# >_ uv run --with opencv-python --with scikit-learn --with tensorflow traffic.py gtsrb
 # >_ uv run --with scikit-learn --with numpy --with tensorflow --with opencv-python --with check50 check50 --local ai50/projects/2024/x/traffic
 
 import cv2
@@ -70,9 +70,10 @@ def load_data(data_dir):
             path = os.path.join(label_dir, filename)
 
             img = cv2.imread(path)
-            resized = cv2.resize(img, dsize=(IMG_WIDTH, IMG_HEIGHT))
+            img = cv2.resize(img, dsize=(IMG_WIDTH, IMG_HEIGHT))
+            img = img / 255.0 # Normalize pixel values to be between 0 and 1
 
-            images.append(resized)
+            images.append(img)
             labels.append(label)
 
     return images, labels
@@ -84,7 +85,31 @@ def get_model():
     `input_shape` of the first layer is `(IMG_WIDTH, IMG_HEIGHT, 3)`.
     The output layer should have `NUM_CATEGORIES` units, one for each category.
     """
-    raise NotImplementedError
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Input((IMG_WIDTH, IMG_HEIGHT, 3)),
+
+        tf.keras.layers.Conv2D(32, (3,3), activation="relu"),
+        tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
+        tf.keras.layers.Dropout(0.25),
+
+        tf.keras.layers.Conv2D(64, (3,3), activation="relu"),
+        tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
+        tf.keras.layers.Dropout(0.25),
+
+        tf.keras.layers.Flatten(),
+
+        tf.keras.layers.Dense(128, activation="relu"),
+        tf.keras.layers.Dropout(0.5),
+
+        tf.keras.layers.Dense(NUM_CATEGORIES, activation="softmax")
+    ])
+
+
+    model.compile(optimizer="adam",
+                  loss="categorical_crossentropy",
+                  metrics=["accuracy"])
+
+    return model
 
 
 if __name__ == "__main__":
